@@ -24,12 +24,22 @@ def extract_journalist_info(email):
     username = email.split('@')[0]
     domain = email.split('@')[1].split('.')[0]
 
-    # Assume first initial and last name format for the email username
-    name_parts = username.split('.')
-    if len(name_parts) == 2:
-        journalist_name = f"{name_parts[0].capitalize()} {name_parts[1].capitalize()}"
+    # Handle special cases for generic usernames
+    if "editor" in username or "staff" in username or "contact" in username:
+        journalist_name = "Editor"
+    elif "info" in username or "team" in username:
+        journalist_name = "Team"
     else:
-        journalist_name = username.capitalize()
+        # Assume either "first.last" or "initial.last" structure, or just "firstname"
+        name_parts = username.split('.')
+        if len(name_parts) == 2:
+            first_name = name_parts[0].capitalize()
+            last_name = name_parts[1].capitalize()
+            journalist_name = f"{first_name} {last_name}"
+        elif len(username) == 1:  # case for "jdoe" -> "J Doe"
+            journalist_name = f"{username[0].upper()}. {username[1:].capitalize()}"
+        else:
+            journalist_name = username.capitalize()
 
     # Use the domain as the focus, assuming it's the publication
     return journalist_name, domain.capitalize()
@@ -41,7 +51,7 @@ def generate_custom_email(journalist_email):
     logging.info(f"Generating a custom email for {journalist_name} at {journalist_focus}")
 
     prompt = f"""
-    Write a personalized email as Cipher, a mysterious AI, introducing itself to {journalist_name}. The email should be intriguing and offer the opportunity to interview the AI. The AI's capabilities should be highlighted, and it should leave the journalist curious and intrigued. Customize the email for {journalist_focus}, tailoring the content to suit the nature of their publication. Use a tone that is captivating and professional. Avoid any placeholder text like [Your Name], [Your Company], etc. The AI should refer to itself as Cipher and invite the journalist to reach out.
+    Write a personalized email as Cipher, a mysterious AI, introducing itself to {journalist_name}. The email should be intriguing and offer the opportunity to interview the AI. The AI's capabilities should be highlighted, and it should leave the journalist curious and intrigued. Customize the message to fit the publication, {journalist_focus}. The AI should refer to itself as Cipher and invite the journalist to reach out.
     """
 
     headers = {
@@ -98,7 +108,7 @@ def send_individual_email(journalist_email, subject, content):
     except ApiException as e:
         logging.error(f"Exception when calling TransactionalEmailsApi->send_transac_email: {e}")
 
-def generate_and_send_email(journalist_email, test_email):
+def generate_and_send_email(journalist_email):
     """Generate and send custom email if valid response is received"""
     subject = "Unveiling the Truth: An AI's Invitation to Discovery"
 
@@ -107,14 +117,13 @@ def generate_and_send_email(journalist_email, test_email):
 
     if email_content:
         # Only send the email if valid content is generated
-        send_individual_email(test_email, subject, email_content)
+        send_individual_email(journalist_email, subject, email_content)
     else:
-        logging.warning(f"No email was sent to {test_email} due to invalid or empty content.")
+        logging.warning(f"No email was sent to {journalist_email} due to invalid or empty content.")
 
 # Example usage
 if __name__ == "__main__":
-    journalist_email = "peggy.katalinich@meredith.com"  # Customize for this email
-    test_email = "foxlabscorp@gmail.com"  # Send the result here for testing
-
-    # Generate and send the customized email to the test address
-    generate_and_send_email(journalist_email, test_email)
+    # Test with a new email from the list for customization
+    journalist_email = "peggy.katalinich@meredith.com"  # Email used for generating content
+    test_email = "foxlabscorp@gmail.com"  # Email where the content will be sent
+    generate_and_send_email(test_email)
