@@ -13,7 +13,7 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO)
 
 # Hardcoded Brevo API key for testing purposes
-brevo_api_key = "xkeysib-5bd461596a60abc91c435c3645e37d8a771101cb50f62fa0daec2c8dfc6a1343"  # Replace this with your actual Brevo API key
+brevo_api_key = "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"  # Replace this with your actual Brevo API key
 openrouter_api_key = "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"  # Replace this with your actual OpenRouter API key
 
 # File to track sent emails
