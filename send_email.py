@@ -11,12 +11,11 @@ configuration.api_key['api-key'] = 'xkeysib-5bd461596a60abc91c435c3645e37d8a7711
 api_instance = sib_api_v3_sdk.EmailCampaignsApi(sib_api_v3_sdk.ApiClient(configuration))
 
 def send_email_to_journalist(journalist_email, subject, content):
-    # Define the email campaign parameters
+    # Define the email campaign parameters (without the 'type' field)
     email_campaign = sib_api_v3_sdk.CreateEmailCampaign(
         name="AI-Journalist Outreach",
         subject=subject,
         sender={"name": "Neil Wacaster AI", "email": "contact@neilwacaster.com"},
-        type="classic",
         html_content=content,
         recipients={"listIds": [2]},  # Manage your listIds in Brevo's UI
         scheduled_at="2024-10-01 00:00:01"  # Optional scheduled send time
@@ -44,3 +43,4 @@ if __name__ == "__main__":
 
     # Call the function to send the test email
     send_email_to_journalist(journalist_email, subject, content)
+
