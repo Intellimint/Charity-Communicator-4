@@ -137,5 +137,5 @@ def generate_and_send_email(journalist_email):
 
 # Example usage
 if __name__ == "__main__":
-    journalist_email = "jdoe@newspaper.com"  # Example email for testing
+    journalist_email = "foxlabscorp@gmail.com"  # Example email for testing
     generate_and_send_email(journalist_email)
