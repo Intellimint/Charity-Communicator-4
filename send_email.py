@@ -11,9 +11,11 @@ from datetime import datetime
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Get Brevo and OpenRouter API Keys from environment variables (GitHub secrets)
+# Hardcoded OpenRouter API Key for testing
+openrouter_api_key = "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"
+
+# Get Brevo API Key from environment variables (GitHub secrets)
 brevo_api_key = os.getenv('BREVO_API_KEY')  # Ensure this key is correct
-openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
 
 # File to track daily email count
 EMAIL_COUNT_FILE = 'daily_email_count.txt'
