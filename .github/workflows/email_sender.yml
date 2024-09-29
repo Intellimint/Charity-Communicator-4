@@ -1,27 +1,40 @@
-name: Send Emails with Brevo API
+name: Send Emails
 
 on:
   schedule:
-    - cron: "*/1 * * * *"  # Runs every minute for testing
-  workflow_dispatch:  # Enables manual trigger of the workflow
+    - cron: "*/1 * * * *"  # Runs every minute
 
 jobs:
-  send_emails:
+  send_emails_job:
     runs-on: ubuntu-latest
     steps:
-      - name: Set up job
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Python 3.9
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install sib-api-v3-sdk
-          pip install requests
+    # Step 1: Cache sent_emails.json
+    - name: Restore sent emails cache
+      id: cache-sent-emails
+      uses: actions/cache@v3
+      with:
+        path: sent_emails.json
+        key: sent-emails-cache
 
-      - name: Run email sender script
-        run: python send_email.py
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install sib-api-v3-sdk requests
+
+    - name: Run send_email script
+      run: python send_email.py
+
+    # Step 2: Cache the sent_emails.json after running the script
+    - name: Update sent emails cache
+      uses: actions/cache@v3
+      with:
+        path: sent_emails.json
+        key: sent-emails-cache
