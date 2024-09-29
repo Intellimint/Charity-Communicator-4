@@ -63,7 +63,10 @@ def generate_custom_email(journalist_email):
         response = requests.post(openrouter_api_url, headers=headers, data=json.dumps(data))
         response.raise_for_status()
 
-        email_text = response.json()['choices'][0]['message']['content']
+        # Log the raw response for debugging
+        logging.info(f"OpenRouter response: {response.json()}")
+
+        email_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
 
         if email_text.strip():
             logging.info(f"Custom email generated: {email_text}")
