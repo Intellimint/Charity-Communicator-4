@@ -25,8 +25,9 @@ def generate_custom_email(journalist_name, journalist_focus):
 
     # Define the prompt for the Hermes 3 405B model
     prompt = f"""
-    Write a personalized email to {journalist_name}, a journalist who covers {journalist_focus}. 
-    The email should be warm, professional, and written in HTML format with properly formatted paragraphs (<p>) without using too many <br> tags. Do not include the subject line in the body or a phrase like "Here is the email in HTML format." The email should offer a collaboration opportunity with an AI-driven solution.
+    You are Cipher, a mysterious and powerful AI built to assist journalists in uncovering hidden truths.
+    Write a personalized, intriguing email to {journalist_name}, a journalist who covers {journalist_focus}.
+    The email should emphasize Cipher's advanced capabilities in uncovering hidden stories, analyzing complex patterns, and revealing what was once concealed. Make the tone mysterious but professional, and invite the journalist to reply to this email to learn more or interview Cipher. Also, generate a custom subject line that will spark curiosity.
     """
 
     headers = {
@@ -53,9 +54,6 @@ def generate_custom_email(journalist_name, journalist_focus):
         email_text = response.json()['choices'][0]['message']['content']
 
         if email_text.strip():
-            # Clean up email: remove subject line and unnecessary prompt information if needed
-            if "Subject:" in email_text:
-                email_text = email_text.split("Subject:")[1].split("</p>")[1]  # Removing the subject if found
             logging.info(f"Custom email generated: {email_text}")
             return email_text
         else:
@@ -71,7 +69,7 @@ def send_individual_email(journalist_email, subject, content):
 
     send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
         to=[{"email": journalist_email}],
-        sender={"name": "Neil Wacaster AI", "email": "contact@neilwacaster.com"},
+        sender={"name": "Cipher", "email": "contact@neilwacaster.com"},
         subject=subject,
         html_content=content
     )
@@ -86,21 +84,24 @@ def send_individual_email(journalist_email, subject, content):
 
 def generate_and_send_email(journalist_email, journalist_name, journalist_focus):
     """Generate and send custom email if valid response is received"""
-    subject = f"Collaboration Opportunity with AI for {journalist_name}"
-
+    
     # Generate custom email content
     email_content = generate_custom_email(journalist_name, journalist_focus)
 
     if email_content:
+        # Parse email content to extract subject and body
+        subject_line = email_content.split("\n")[0].replace("Subject: ", "").strip()
+        email_body = email_content.replace(subject_line, "").strip()
+
         # Only send the email if valid content is generated
-        send_individual_email(journalist_email, subject, email_content)
+        send_individual_email(journalist_email, subject_line, email_body)
     else:
         logging.warning(f"No email was sent to {journalist_name} due to invalid or empty content.")
 
 # Example usage
 if __name__ == "__main__":
     journalist_email = "foxlabscorp@gmail.com"  # Test email for yourself
-    journalist_name = "F. P"
+    journalist_name = "F. P."
     journalist_focus = "AI and technology"
 
     # Generate and send email to the journalist
