@@ -11,11 +11,8 @@ from datetime import datetime
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Get Brevo API Key and SMTP credentials from environment variables (GitHub secrets)
-smtp_server = os.getenv('BREVO_SMTP_SERVER')
-smtp_port = os.getenv('BREVO_SMTP_PORT')
-smtp_login = os.getenv('BREVO_SMTP_LOGIN')
-smtp_password = os.getenv('BREVO_SMTP_KEY')
+# Get Brevo API Key from environment variables (GitHub secrets)
+brevo_api_key = os.getenv('BREVO_API_KEY')  # Ensure this key is correct
 openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
 
 # File to track daily email count
@@ -24,7 +21,7 @@ MAX_EMAILS_PER_DAY = 250
 
 # Configuration of Brevo API key
 brevo_configuration = sib_api_v3_sdk.Configuration()
-brevo_configuration.api_key['api-key'] = smtp_password  # Use the secret key as the API key
+brevo_configuration.api_key['api-key'] = brevo_api_key  # Use Brevo's actual API key
 
 # Create an instance of the Brevo Transactional Emails API client
 brevo_api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(brevo_configuration))
@@ -121,7 +118,7 @@ def send_individual_email(journalist_email, subject, content):
 
     send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
         to=[{"email": journalist_email}],
-        sender={"name": "Cipher", "email": smtp_login},
+        sender={"name": "Cipher", "email": "cipher@neilwacaster.com"},  # Ensure the email is correct
         subject=subject,
         html_content=content
     )
