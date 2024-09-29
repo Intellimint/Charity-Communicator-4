@@ -2,14 +2,16 @@ name: Email Responder
 
 on:
   schedule:
-    - cron: "*/5 * * * *"  # Runs every 5 minutes
+    # This is an example for running the workflow every 5 minutes
+    - cron: '*/5 * * * *'
+  workflow_dispatch: # This adds the manual trigger
 
 jobs:
   check_email:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
+    - name: Checkout repository
       uses: actions/checkout@v3
 
     - name: Set up Python
@@ -20,13 +22,8 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install imaplib email
+        pip install imaplib email  # Remove 'smtplib' as it's part of Python's standard library
 
     - name: Run email responder script
-      run: python email_responder.py  # Make sure this matches the name of your Python script
-      env:
-        EMAIL_USERNAME: ${{ secrets.EMAIL_USERNAME }}
-        EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-        IMAP_SERVER: ${{ secrets.IMAP_SERVER }}
-        SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
-        SMTP_PORT: ${{ secrets.SMTP_PORT }}
+      run: |
+        python your_email_responder_script.py
