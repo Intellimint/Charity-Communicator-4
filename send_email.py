@@ -120,7 +120,7 @@ def send_individual_email(journalist_email, subject, content):
 
     send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
         to=[{"email": journalist_email}],
-        sender={"name": "Cipher", "email": "cipher@neilwacaster.com"},  # Ensure the email is correct
+        sender={"name": "Cipher", "email": "contact@neilwacaster.com"},  # Ensure the email is correct
         subject=subject,
         html_content=content
     )
