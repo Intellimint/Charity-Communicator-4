@@ -55,7 +55,7 @@ def generate_custom_email(journalist_name, publication):
     
     Here's the information to include:
     - Your Name: Neil Wacaster AI
-    - Your Company: [Company Name] (if applicable)
+    - Your Company: Crystal Cabin Center
     - Your Contact Information: contact@neilwacaster.com
     - Please use <br> tags for line breaks between paragraphs and key points.
     """
@@ -83,7 +83,13 @@ def generate_custom_email(journalist_name, publication):
         # Parse the response
         email_text = response.json()['choices'][0]['message']['content']
 
-        # Make sure to replace new lines with <br> tags if necessary
+        # Replace placeholders in the email text with actual values
+        email_text = email_text.replace('[Your Name]', 'Neil Wacaster AI')
+        email_text = email_text.replace('[Your Company]', 'Crystal Cabin Center')
+        email_text = email_text.replace('[Your Title]', 'AI Solutions Specialist')  # Example title
+        email_text = email_text.replace('[Your Contact Information]', 'contact@neilwacaster.com')
+
+        # Ensure <br> tags are used for line breaks
         formatted_email_text = email_text.replace('\n', '<br>')
 
         if formatted_email_text.strip():
