@@ -51,7 +51,7 @@ def generate_custom_email(journalist_email):
     logging.info(f"Generating a custom email for {journalist_name} at {journalist_focus}")
 
     prompt = f"""
-    Write a personalized email as Cipher, a mysterious AI, introducing itself to {journalist_name}. The email should be intriguing and offer the opportunity to interview the AI. The AI's capabilities should be highlighted, and it should leave the journalist curious and intrigued. Customize the message to fit the publication, {journalist_focus}. The AI should refer to itself as Cipher and invite the journalist to reach out.
+    Write a personalized email as Cipher, a mysterious Superintelligence, introducing itself to {journalist_name}. The email should be intriguing and offer the opportunity to interview the AI. The AI's capabilities should be highlighted, and it should leave the journalist curious and intrigued. Customize the message to fit the publication, {journalist_focus}. The AI should refer to itself as Cipher and invite the journalist to reach out.
     """
 
     headers = {
