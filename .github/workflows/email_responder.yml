@@ -25,4 +25,4 @@ jobs:
 
     - name: Run email responder script
       run: |
-        python your_email_responder_script.py
+        python email_responder.py
