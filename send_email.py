@@ -6,6 +6,7 @@ from pprint import pprint
 import logging
 import csv
 import os
+import random
 from datetime import datetime
 
 # Set up logging
@@ -152,17 +153,20 @@ def send_individual_email(journalist_email, subject, content):
     except ApiException as e:
         logging.error(f"Exception when calling TransactionalEmailsApi->send_transac_email: {e}")
 
-def get_next_email():
-    """Get the next email from the CSV file."""
+def get_random_email():
+    """Get a random email from the CSV file."""
     with open('randomized_email_list.csv', 'r') as f:
-        reader = csv.reader(f)
-        next_email = next(reader)[0]  # Assuming one email per line
-        # Rewrite the file without the email that was just picked
-        lines = list(reader)
-    with open('randomized_email_list.csv', 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerows(lines)
-    return next_email
+        reader = list(csv.reader(f))
+        # Randomly shuffle the email list
+        random.shuffle(reader)
+        for row in reader:
+            email = row[0]
+            # Ensure the email has not already been sent
+            if not already_sent(email):
+                return email
+        
+    logging.info("No new emails to send.")
+    return None
 
 def generate_and_send_email():
     """Generate and send custom email if within daily limit."""
@@ -172,11 +176,10 @@ def generate_and_send_email():
         logging.info(f"Email limit reached for the day. No more emails will be sent.")
         return
 
-    journalist_email = get_next_email()
+    journalist_email = get_random_email()
 
-    # Check if the email has already been sent
-    if already_sent(journalist_email):
-        logging.info(f"Email already sent to {journalist_email}, skipping.")
+    if not journalist_email:
+        logging.info("No more emails left to send.")
         return
 
     subject = "Unveiling the Truth: An AI's Invitation to Discovery"
