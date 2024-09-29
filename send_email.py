@@ -16,12 +16,9 @@ logging.basicConfig(level=logging.INFO)
 brevo_api_key = "xkeysib-5bd461596a60abc91c435c3645e37d8a771101cb50f62fa0daec2c8dfc6a1343"  # Replace this with your actual Brevo API key
 openrouter_api_key = "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"  # Replace this with your actual OpenRouter API key
 
-# File to track daily email count
-EMAIL_COUNT_FILE = 'daily_email_count.txt'
-MAX_EMAILS_PER_DAY = 250
-
 # File to track sent emails
 SENT_EMAILS_FILE = 'sent_emails.json'
+MAX_EMAILS_PER_DAY = 250
 
 # Configuration for Brevo API key
 brevo_configuration = sib_api_v3_sdk.Configuration()
@@ -33,43 +30,32 @@ brevo_api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiCli
 # OpenRouter API Configuration
 openrouter_api_url = "https://openrouter.ai/api/v1/chat/completions"
 
+def get_email_count():
+    """Get the current count of emails sent today."""
+    sent_emails = load_sent_emails()
+    today = datetime.now().strftime("%Y-%m-%d")
+    return sum(1 for email in sent_emails if email["date"] == today)
+
 def load_sent_emails():
     """Load the list of sent emails from the file."""
     if os.path.exists(SENT_EMAILS_FILE):
         with open(SENT_EMAILS_FILE, 'r') as file:
             return json.load(file)
-    return []
+    else:
+        # If file doesn't exist, return an empty list
+        return []
 
 def save_sent_email(email):
     """Save a sent email to the log file."""
     sent_emails = load_sent_emails()
-    sent_emails.append(email)
+    sent_emails.append({"email": email, "date": datetime.now().strftime("%Y-%m-%d")})
     with open(SENT_EMAILS_FILE, 'w') as file:
         json.dump(sent_emails, file)
 
-def already_sent(email):
-    """Check if an email has already been sent to this address."""
+def email_already_sent(journalist_email):
+    """Check if the email has already been sent to the given address."""
     sent_emails = load_sent_emails()
-    return email in sent_emails
-
-def get_email_count():
-    """Read the current email count from file."""
-    if not os.path.exists(EMAIL_COUNT_FILE):
-        return 0
-
-    with open(EMAIL_COUNT_FILE, 'r') as f:
-        count, last_date = f.read().split(',')
-        # If it's a new day, reset the counter
-        if last_date != datetime.now().strftime("%Y-%m-%d"):
-            return 0
-        return int(count)
-
-def increment_email_count():
-    """Increment the email count and update the file."""
-    count = get_email_count() + 1
-    with open(EMAIL_COUNT_FILE, 'w') as f:
-        f.write(f"{count},{datetime.now().strftime('%Y-%m-%d')}")
-    return count
+    return any(entry['email'] == journalist_email for entry in sent_emails)
 
 def extract_journalist_info(email):
     """Extract journalist's name and publication from email address."""
@@ -150,23 +136,22 @@ def send_individual_email(journalist_email, subject, content):
         api_response = brevo_api_instance.send_transac_email(send_smtp_email)
         logging.info("Email sent successfully!")
         pprint(api_response)
+        # Log the sent email to the JSON file
+        save_sent_email(journalist_email)
     except ApiException as e:
         logging.error(f"Exception when calling TransactionalEmailsApi->send_transac_email: {e}")
 
-def get_random_email():
-    """Get a random email from the CSV file."""
+def get_next_email():
+    """Get the next random email from the CSV file."""
     with open('randomized_email_list.csv', 'r') as f:
         reader = list(csv.reader(f))
-        # Randomly shuffle the email list
-        random.shuffle(reader)
-        for row in reader:
-            email = row[0]
-            # Ensure the email has not already been sent
-            if not already_sent(email):
-                return email
-        
-    logging.info("No new emails to send.")
-    return None
+    random.shuffle(reader)  # Shuffle to pick a random email
+    next_email = reader[0][0]
+    # Rewrite the file without the email that was just picked
+    with open('randomized_email_list.csv', 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerows(reader[1:])
+    return next_email
 
 def generate_and_send_email():
     """Generate and send custom email if within daily limit."""
@@ -176,10 +161,11 @@ def generate_and_send_email():
         logging.info(f"Email limit reached for the day. No more emails will be sent.")
         return
 
-    journalist_email = get_random_email()
+    journalist_email = get_next_email()
 
-    if not journalist_email:
-        logging.info("No more emails left to send.")
+    # Check if email has already been sent
+    if email_already_sent(journalist_email):
+        logging.info(f"Email has already been sent to {journalist_email}. Skipping.")
         return
 
     subject = "Unveiling the Truth: An AI's Invitation to Discovery"
@@ -190,8 +176,6 @@ def generate_and_send_email():
     if email_content:
         # Send the email if valid content is generated
         send_individual_email(journalist_email, subject, email_content)
-        increment_email_count()
-        save_sent_email(journalist_email)  # Log the email after it's sent
     else:
         logging.warning(f"No email was sent to {journalist_email} due to invalid or empty content.")
 
