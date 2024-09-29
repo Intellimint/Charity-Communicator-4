@@ -31,23 +31,17 @@ def extract_journalist_info(email):
     else:
         journalist_name = username.capitalize()
 
-    # Use the domain as the focus, assuming it's the publication or company
-    journalist_focus = domain.capitalize()
-
-    return journalist_name, journalist_focus
+    # Use the domain as the focus, assuming it's the publication
+    return journalist_name, domain.capitalize()
 
 def generate_custom_email(journalist_email):
     """Generate a custom email using Hermes 3 405B model via OpenRouter"""
     journalist_name, journalist_focus = extract_journalist_info(journalist_email)
     
-    logging.info(f"Generating a custom email for {journalist_name}")
+    logging.info(f"Generating a custom email for {journalist_name} at {journalist_focus}")
 
-    # Define the prompt for the Hermes 3 405B model
     prompt = f"""
-    You are Cipher, a mysterious and powerful AI built to assist journalists in uncovering hidden truths.
-    Write a personalized, intriguing email to {journalist_name}, a journalist who covers topics at {journalist_focus}.
-    The email should emphasize Cipher's advanced capabilities in uncovering hidden stories, analyzing complex patterns, and revealing what was once concealed. 
-    Make the tone mysterious but professional, and invite the journalist to reply to this email to learn more or interview Cipher. Also, generate a custom subject line that will spark curiosity.
+    Write a personalized email as Cipher, a mysterious AI, introducing itself to {journalist_name}. The email should be intriguing and offer the opportunity to interview the AI. The AI's capabilities should be highlighted, and it should leave the journalist curious and intrigued. Use a tone that is captivating and professional. Avoid any placeholder text like [Your Name], [Your Company], etc. The AI should refer to itself as Cipher and invite the journalist to reach out.
     """
 
     headers = {
@@ -66,16 +60,16 @@ def generate_custom_email(journalist_email):
     }
 
     try:
-        # Send the request to OpenRouter
         response = requests.post(openrouter_api_url, headers=headers, data=json.dumps(data))
         response.raise_for_status()
 
-        # Parse the response
         email_text = response.json()['choices'][0]['message']['content']
 
         if email_text.strip():
             logging.info(f"Custom email generated: {email_text}")
-            return email_text
+            # Format email with paragraph tags for better readability
+            formatted_email = email_text.replace("\n", "</p><p>")
+            return f"<p>{formatted_email}</p>"
         else:
             logging.warning("OpenRouter returned an empty response.")
             return None
@@ -95,7 +89,6 @@ def send_individual_email(journalist_email, subject, content):
     )
 
     try:
-        # Send the email via Brevo API
         api_response = brevo_api_instance.send_transac_email(send_smtp_email)
         logging.info("Email sent successfully!")
         pprint(api_response)
@@ -104,23 +97,18 @@ def send_individual_email(journalist_email, subject, content):
 
 def generate_and_send_email(journalist_email):
     """Generate and send custom email if valid response is received"""
-    
+    subject = "Unveiling the Truth: An AI's Invitation to Discovery"
+
     # Generate custom email content
     email_content = generate_custom_email(journalist_email)
 
     if email_content:
-        # Parse email content to extract subject and body
-        subject_line = email_content.split("\n")[0].replace("Subject: ", "").strip()
-        email_body = email_content.replace(subject_line, "").strip()
-
         # Only send the email if valid content is generated
-        send_individual_email(journalist_email, subject_line, email_body)
+        send_individual_email(journalist_email, subject, email_content)
     else:
         logging.warning(f"No email was sent to {journalist_email} due to invalid or empty content.")
 
 # Example usage
 if __name__ == "__main__":
     journalist_email = "foxlabscorp@gmail.com"  # Test email for yourself
-
-    # Generate and send email to the journalist
     generate_and_send_email(journalist_email)
