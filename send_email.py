@@ -11,7 +11,7 @@ from datetime import datetime
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Get Brevo API Key from environment variables (GitHub secrets)
+# Get Brevo and OpenRouter API Keys from environment variables (GitHub secrets)
 brevo_api_key = os.getenv('BREVO_API_KEY')  # Ensure this key is correct
 openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
 
@@ -19,7 +19,7 @@ openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
 EMAIL_COUNT_FILE = 'daily_email_count.txt'
 MAX_EMAILS_PER_DAY = 250
 
-# Configuration of Brevo API key
+# Configuration for Brevo API key
 brevo_configuration = sib_api_v3_sdk.Configuration()
 brevo_configuration.api_key['api-key'] = brevo_api_key  # Use Brevo's actual API key
 
@@ -103,7 +103,7 @@ def generate_custom_email(journalist_email):
 
         if email_text.strip():
             logging.info(f"Custom email generated: {email_text}")
-            formatted_email = email_text.replace("\n", "</p><p>")  # Format email
+            formatted_email = email_text.replace("\n", "</p><p>")  # Format email for HTML
             return f"<p>{formatted_email}</p>"
         else:
             logging.warning("OpenRouter returned an empty response.")
