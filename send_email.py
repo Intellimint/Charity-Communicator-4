@@ -4,6 +4,9 @@ import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 from pprint import pprint
 import logging
+import csv
+import random
+import pandas as pd
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -24,22 +27,12 @@ def extract_journalist_info(email):
     username = email.split('@')[0]
     domain = email.split('@')[1].split('.')[0]
 
-    # Handle special cases for generic usernames
-    if "editor" in username or "staff" in username or "contact" in username:
-        journalist_name = "Editor"
-    elif "info" in username or "team" in username:
-        journalist_name = "Team"
+    # Assume first initial and last name format for the email username
+    name_parts = username.split('.')
+    if len(name_parts) == 2:
+        journalist_name = f"{name_parts[0].capitalize()} {name_parts[1].capitalize()}"
     else:
-        # Assume either "first.last" or "initial.last" structure, or just "firstname"
-        name_parts = username.split('.')
-        if len(name_parts) == 2:
-            first_name = name_parts[0].capitalize()
-            last_name = name_parts[1].capitalize()
-            journalist_name = f"{first_name} {last_name}"
-        elif len(username) == 1:  # case for "jdoe" -> "J Doe"
-            journalist_name = f"{username[0].upper()}. {username[1:].capitalize()}"
-        else:
-            journalist_name = username.capitalize()
+        journalist_name = username.capitalize()
 
     # Use the domain as the focus, assuming it's the publication
     return journalist_name, domain.capitalize()
@@ -51,7 +44,7 @@ def generate_custom_email(journalist_email):
     logging.info(f"Generating a custom email for {journalist_name} at {journalist_focus}")
 
     prompt = f"""
-    Write a personalized email as Cipher, a mysterious Superintelligence, introducing itself to {journalist_name}. The email should be intriguing and offer the opportunity to interview the AI. The AI's capabilities should be highlighted, and it should leave the journalist curious and intrigued. Customize the message to fit the publication, {journalist_focus}. The AI should refer to itself as Cipher and invite the journalist to reach out.
+    Write a personalized email as Cipher, a mysterious AI, introducing itself to {journalist_name}. The email should be intriguing and offer the opportunity to interview the AI. The AI's capabilities should be highlighted, and it should leave the journalist curious and intrigued. Use a tone that is captivating and professional. Avoid any placeholder text like [Your Name], [Your Company], etc. The AI should refer to itself as Cipher and invite the journalist to reach out.
     """
 
     headers = {
@@ -108,22 +101,47 @@ def send_individual_email(journalist_email, subject, content):
     except ApiException as e:
         logging.error(f"Exception when calling TransactionalEmailsApi->send_transac_email: {e}")
 
-def generate_and_send_email(journalist_email):
+def get_random_email():
+    """Get a random email address from the CSV"""
+    df = pd.read_csv('randomized_email_list.csv')
+    
+    # Filter out already contacted emails
+    uncontacted_emails = df[df['Contacted'].isna()]
+    
+    # Select a random email from the uncontacted list
+    selected_row = uncontacted_emails.sample()
+    
+    # Extract the email
+    selected_email = selected_row['Email'].values[0]
+    
+    return selected_email, selected_row.index[0], df
+
+def update_csv(index, df):
+    """Mark the email as contacted in the CSV file"""
+    df.at[index, 'Contacted'] = 'Yes'
+    
+    # Save the updated CSV
+    df.to_csv('randomized_email_list.csv', index=False)
+
+def generate_and_send_email():
     """Generate and send custom email if valid response is received"""
     subject = "Unveiling the Truth: An AI's Invitation to Discovery"
+
+    # Get a random email from the CSV file
+    journalist_email, selected_index, df = get_random_email()
 
     # Generate custom email content
     email_content = generate_custom_email(journalist_email)
 
     if email_content:
-        # Only send the email if valid content is generated
+        # Send the email
         send_individual_email(journalist_email, subject, email_content)
+        
+        # Mark the email as contacted
+        update_csv(selected_index, df)
     else:
         logging.warning(f"No email was sent to {journalist_email} due to invalid or empty content.")
 
 # Example usage
 if __name__ == "__main__":
-    # Test with a new email from the list for customization
-    journalist_email = "peggy.katalinich@meredith.com"  # Email used for generating content
-    test_email = "foxlabscorp@gmail.com"  # Email where the content will be sent
-    generate_and_send_email(test_email)
+    generate_and_send_email()
