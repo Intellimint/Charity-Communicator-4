@@ -11,20 +11,26 @@ from datetime import datetime
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Configuration of Brevo API key
-brevo_configuration = sib_api_v3_sdk.Configuration()
-brevo_configuration.api_key['api-key'] = 'your_brevo_api_key'  # Insert Brevo API key
-
-# Create an instance of the Brevo Transactional Emails API client
-brevo_api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(brevo_configuration))
-
-# Configuration for OpenRouter API
-openrouter_api_url = "https://openrouter.ai/api/v1/chat/completions"
-openrouter_api_key = 'your_openrouter_api_key'  # Insert OpenRouter API key
+# Get Brevo API Key and SMTP credentials from environment variables (GitHub secrets)
+smtp_server = os.getenv('BREVO_SMTP_SERVER')
+smtp_port = os.getenv('BREVO_SMTP_PORT')
+smtp_login = os.getenv('BREVO_SMTP_LOGIN')
+smtp_password = os.getenv('BREVO_SMTP_KEY')
+openrouter_api_key = os.getenv('OPENROUTER_API_KEY')
 
 # File to track daily email count
 EMAIL_COUNT_FILE = 'daily_email_count.txt'
 MAX_EMAILS_PER_DAY = 250
+
+# Configuration of Brevo API key
+brevo_configuration = sib_api_v3_sdk.Configuration()
+brevo_configuration.api_key['api-key'] = smtp_password  # Use the secret key as the API key
+
+# Create an instance of the Brevo Transactional Emails API client
+brevo_api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(brevo_configuration))
+
+# OpenRouter API Configuration
+openrouter_api_url = "https://openrouter.ai/api/v1/chat/completions"
 
 def get_email_count():
     """Read the current email count from file."""
@@ -46,7 +52,7 @@ def increment_email_count():
     return count
 
 def extract_journalist_info(email):
-    """Extract journalist's name and publication from email address"""
+    """Extract journalist's name and publication from email address."""
     username = email.split('@')[0]
     domain = email.split('@')[1].split('.')[0]
 
@@ -61,7 +67,7 @@ def extract_journalist_info(email):
     return journalist_name, domain.capitalize()
 
 def generate_custom_email(journalist_email):
-    """Generate a custom email using OpenRouter"""
+    """Generate a custom email using OpenRouter."""
     journalist_name, journalist_focus = extract_journalist_info(journalist_email)
     
     logging.info(f"Generating a custom email for {journalist_name} at {journalist_focus}")
@@ -110,12 +116,12 @@ def generate_custom_email(journalist_email):
         return None
 
 def send_individual_email(journalist_email, subject, content):
-    """Send an email using Brevo's Transactional Email API"""
+    """Send an email using Brevo's Transactional Email API."""
     logging.info(f"Attempting to send an email to {journalist_email}")
 
     send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
         to=[{"email": journalist_email}],
-        sender={"name": "Cipher", "email": "contact@neilwacaster.com"},
+        sender={"name": "Cipher", "email": smtp_login},
         subject=subject,
         html_content=content
     )
@@ -140,7 +146,7 @@ def get_next_email():
     return next_email
 
 def generate_and_send_email():
-    """Generate and send custom email if within daily limit"""
+    """Generate and send custom email if within daily limit."""
     email_count = get_email_count()
 
     if email_count >= MAX_EMAILS_PER_DAY:
