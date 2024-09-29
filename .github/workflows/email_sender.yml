@@ -3,6 +3,7 @@ name: Send Emails
 on:
   schedule:
     - cron: "*/1 * * * *"  # Runs every minute
+  workflow_dispatch:  # Allows manual triggering
 
 jobs:
   send_emails_job:
