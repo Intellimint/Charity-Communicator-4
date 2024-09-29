@@ -2,6 +2,10 @@ from __future__ import print_function
 import sib_api_v3_sdk
 from sib_api_v3_sdk.rest import ApiException
 from pprint import pprint
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 
 # Configuration of Brevo API key (Directly set here for testing purposes)
 configuration = sib_api_v3_sdk.Configuration()
@@ -11,21 +15,26 @@ configuration.api_key['api-key'] = 'xkeysib-5bd461596a60abc91c435c3645e37d8a7711
 api_instance = sib_api_v3_sdk.EmailCampaignsApi(sib_api_v3_sdk.ApiClient(configuration))
 
 def send_email_to_journalist(journalist_email, subject, content):
-    # Define the email campaign parameters (without the 'type' field)
+    # Log the attempt to send the email
+    logging.info(f"Attempting to send an email to {journalist_email}")
+
+    # Define the email campaign parameters (sending directly to the email)
     email_campaign = sib_api_v3_sdk.CreateEmailCampaign(
         name="AI-Journalist Outreach",
         subject=subject,
         sender={"name": "Neil Wacaster AI", "email": "contact@neilwacaster.com"},
         html_content=content,
-        recipients={"listIds": [2]},  # Manage your listIds in Brevo's UI
-        scheduled_at="2024-10-01 00:00:01"  # Optional scheduled send time
+        recipients={"exclusionListIds": [], "emails": [journalist_email]}  # Send directly to email
+        # No scheduled_at field, so email is sent immediately
     )
 
     try:
         # Send the email campaign via Brevo API
         api_response = api_instance.create_email_campaign(email_campaign)
+        logging.info("Email sent successfully!")
         pprint(api_response)
     except ApiException as e:
+        logging.error(f"Exception when calling EmailCampaignsApi->create_email_campaign: {e}")
         print("Exception when calling EmailCampaignsApi->create_email_campaign: %s\n" % e)
 
 # Example call to send a test email
