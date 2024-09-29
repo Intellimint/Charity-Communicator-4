@@ -19,15 +19,35 @@ brevo_api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiCli
 openrouter_api_url = "https://openrouter.ai/api/v1/chat/completions"
 openrouter_api_key = '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'  # Insert OpenRouter API key
 
-def generate_custom_email(journalist_name, journalist_focus):
+def extract_journalist_info(email):
+    """Extract journalist's name and publication from email address"""
+    username = email.split('@')[0]
+    domain = email.split('@')[1].split('.')[0]
+
+    # Assume first initial and last name format for the email username
+    name_parts = username.split('.')
+    if len(name_parts) == 2:
+        journalist_name = f"{name_parts[0].capitalize()} {name_parts[1].capitalize()}"
+    else:
+        journalist_name = username.capitalize()
+
+    # Use the domain as the focus, assuming it's the publication or company
+    journalist_focus = domain.capitalize()
+
+    return journalist_name, journalist_focus
+
+def generate_custom_email(journalist_email):
     """Generate a custom email using Hermes 3 405B model via OpenRouter"""
+    journalist_name, journalist_focus = extract_journalist_info(journalist_email)
+    
     logging.info(f"Generating a custom email for {journalist_name}")
 
     # Define the prompt for the Hermes 3 405B model
     prompt = f"""
     You are Cipher, a mysterious and powerful AI built to assist journalists in uncovering hidden truths.
-    Write a personalized, intriguing email to {journalist_name}, a journalist who covers {journalist_focus}.
-    The email should emphasize Cipher's advanced capabilities in uncovering hidden stories, analyzing complex patterns, and revealing what was once concealed. Make the tone mysterious but professional, and invite the journalist to reply to this email to learn more or interview Cipher. Also, generate a custom subject line that will spark curiosity.
+    Write a personalized, intriguing email to {journalist_name}, a journalist who covers topics at {journalist_focus}.
+    The email should emphasize Cipher's advanced capabilities in uncovering hidden stories, analyzing complex patterns, and revealing what was once concealed. 
+    Make the tone mysterious but professional, and invite the journalist to reply to this email to learn more or interview Cipher. Also, generate a custom subject line that will spark curiosity.
     """
 
     headers = {
@@ -82,11 +102,11 @@ def send_individual_email(journalist_email, subject, content):
     except ApiException as e:
         logging.error(f"Exception when calling TransactionalEmailsApi->send_transac_email: {e}")
 
-def generate_and_send_email(journalist_email, journalist_name, journalist_focus):
+def generate_and_send_email(journalist_email):
     """Generate and send custom email if valid response is received"""
     
     # Generate custom email content
-    email_content = generate_custom_email(journalist_name, journalist_focus)
+    email_content = generate_custom_email(journalist_email)
 
     if email_content:
         # Parse email content to extract subject and body
@@ -96,13 +116,11 @@ def generate_and_send_email(journalist_email, journalist_name, journalist_focus)
         # Only send the email if valid content is generated
         send_individual_email(journalist_email, subject_line, email_body)
     else:
-        logging.warning(f"No email was sent to {journalist_name} due to invalid or empty content.")
+        logging.warning(f"No email was sent to {journalist_email} due to invalid or empty content.")
 
 # Example usage
 if __name__ == "__main__":
     journalist_email = "foxlabscorp@gmail.com"  # Test email for yourself
-    journalist_name = "F. P."
-    journalist_focus = "AI and technology"
 
     # Generate and send email to the journalist
-    generate_and_send_email(journalist_email, journalist_name, journalist_focus)
+    generate_and_send_email(journalist_email)
