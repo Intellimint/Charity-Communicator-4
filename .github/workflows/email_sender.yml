@@ -2,7 +2,7 @@ name: Send Emails
 
 on:
   schedule:
-    - cron: "*/1 * * * *"  # Runs every minute
+    - cron: "*/5 * * * *"  # Runs every 5 minutes
   workflow_dispatch:  # Allows manual triggering
 
 jobs:
@@ -17,14 +17,14 @@ jobs:
       with:
         python-version: '3.x'
 
-    # Step 1: Restore sent_emails.json if it exists
-    - name: Restore sent emails cache
-      id: cache-sent-emails
-      uses: actions/cache@v3
-      with:
-        path: sent_emails.json
-        key: sent-emails-cache
-        restore-keys: sent-emails-cache
+    # Step 1: Restore sent_emails.json if it exists (Commented out temporarily to troubleshoot)
+    # - name: Restore sent emails cache
+    #   id: cache-sent-emails
+    #   uses: actions/cache@v3
+    #   with:
+    #     path: sent_emails.json
+    #     key: sent-emails-cache
+    #     restore-keys: sent-emails-cache
 
     - name: Install dependencies
       run: |
@@ -34,10 +34,20 @@ jobs:
     - name: Run send_email script
       run: python send_email.py
 
-    # Step 2: Cache sent_emails.json after running the script
-    - name: Update sent emails cache
-      uses: actions/cache@v3
-      with:
-        path: sent_emails.json
-        key: sent-emails-cache
-        enableCrossOsArchive: true
+    # Step 2: Check sent_emails.json content for debugging
+    - name: Check sent_emails.json
+      run: cat sent_emails.json || echo "No emails sent yet"
+
+    # Step 3: Cache sent_emails.json after running the script (Commented out temporarily)
+    # - name: Update sent emails cache
+    #   uses: actions/cache@v3
+    #   with:
+    #     path: sent_emails.json
+    #     key: sent-emails-cache
+    #     enableCrossOsArchive: true
+
+    # Enable debugging output
+    - name: Enable Debugging
+      run: |
+        echo "ACTIONS_RUNNER_DEBUG=true" >> $GITHUB_ENV
+        echo "ACTIONS_STEP_DEBUG=true" >> $GITHUB_ENV
