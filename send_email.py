@@ -79,7 +79,7 @@ def generate_custom_email(journalist_email):
     logging.info(f"Generating a custom email for {journalist_name} at {journalist_focus}")
 
     prompt = f"""
-Write a personalized email as a representative from Donate by Mail, introducing the nonprofit to {journalist_name}. The email should highlight Donate by Mail's mission to collect unused tech items to empower veterans or recycle them responsibly. Make the email captivating by emphasizing the impact on veterans' education and employment opportunities, and the simplicity of the donation process.
+Write a personalized email as a representative from Donate by Mail named Neil Wacaster, introducing the nonprofit to {journalist_name}. The email should highlight Donate by Mail's mission to collect unused tech items to empower veterans or recycle them responsibly. Make the email captivating by emphasizing the impact on veterans' education and employment opportunities, and the simplicity of the donation process.
 Suggest a unique angle for {journalist_name} to explore, such as the tech donation process, the environmental impact of recycling devices, or the personal stories of veterans helped by the program. Invite the journalist to reach out for an interview or feature, and include a clear call to action for collaboration.
 Tailor the message to {journalist_focus}.
     """
