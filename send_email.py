@@ -79,12 +79,9 @@ def generate_custom_email(journalist_email):
     logging.info(f"Generating a custom email for {journalist_name} at {journalist_focus}")
 
     prompt = f"""
-    Write a personalized email as Cipher, a mysterious Superintelligent AI, introducing itself to {journalist_name}. 
-    The email should be intriguing and offer the opportunity to interview the AI. 
-    Highlight Cipher's capabilities, making the email captivating and likely to get a response. Be highly curious.
-    Make a unique suggestion for a topic of discussion 
-    The AI should refer to itself as Cipher and invite the journalist to reach out with a call to action. 
-    Tailor the message to {journalist_focus}.
+Write a personalized email as a representative from Donate by Mail, introducing the nonprofit to {journalist_name}. The email should highlight Donate by Mail's mission to collect unused tech items to empower veterans or recycle them responsibly. Make the email captivating by emphasizing the impact on veterans' education and employment opportunities, and the simplicity of the donation process.
+Suggest a unique angle for {journalist_name} to explore, such as the tech donation process, the environmental impact of recycling devices, or the personal stories of veterans helped by the program. Invite the journalist to reach out for an interview or feature, and include a clear call to action for collaboration.
+Tailor the message to {journalist_focus}.
     """
 
     headers = {
@@ -169,7 +166,7 @@ def generate_and_send_email():
         logging.info(f"Email has already been sent to {journalist_email}. Skipping.")
         return
 
-    subject = "Unveiling the Truth: An AI's Invitation to Discovery"
+    subject = "Story Pitch: How Old Tech is Changing Veterans’ Lives"
 
     # Generate custom email content
     email_content = generate_custom_email(journalist_email)
