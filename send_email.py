@@ -12,15 +12,12 @@ from datetime import datetime
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Load API keys from environment variables
+# Load API key from environment variables
 brevo_api_key = os.getenv("BREVO_API_KEY")
-openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
 
-# Ensure API keys are loaded
+# Ensure API key is loaded
 if not brevo_api_key:
     raise ValueError("Brevo API key is not set. Please check the environment variable BREVO_API_KEY.")
-if not openrouter_api_key:
-    raise ValueError("OpenRouter API key is not set. Please check the environment variable OPENROUTER_API_KEY.")
 
 # File to track sent emails
 SENT_EMAILS_FILE = 'sent_emails.json'
@@ -35,51 +32,67 @@ brevo_api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiCli
 
 # Campaign email template with HTML formatting
 EMAIL_TEMPLATE = """
-<p>Hi there,</p>
+<p>For Immediate Consideration:</p>
 
-<p>Have you noticed how many people got new phones over the holidays? 📱</p>
+<p>In the wake of record-breaking smartphone upgrades (over 200 million phones replaced in 2023), an innovative nonprofit is turning electronic waste into vital funding for local charities.</p>
 
-<p>There's a huge opportunity right now to turn those old devices into funding for your charity, and we handle everything.</p>
-
-<p>Here's the deal:</p>
+<p>Donate by Mail has launched a nationwide initiative that:</p>
 <ul>
-    <li>Your supporters mail in their old phones</li>
-    <li>We handle all logistics and processing</li>
-    <li>You get 50% of the proceeds (average $17K per campaign)</li>
-    <li>Zero work required from your team</li>
+    <li>Converts unused phones into funding for charitable organizations</li>
+    <li>Reduces e-waste through responsible recycling</li>
+    <li>Helps connect veterans and underserved communities with refurbished technology</li>
 </ul>
 
-<p>We're only launching this with 10 select charities this quarter, as each campaign gets our full attention.</p>
+<p>On average, each campaign generates $34,000 in value from donated devices, with 50% going directly to partner charities. We're currently working with organizations focused on disaster relief, veterans' services, and community support programs.</p>
 
-<p>Want to grab a quick call to learn more? Just hit reply with "YES" and I'll send over a booking link.</p>
+<p>Would you be interested in learning more about this intersection of environmental sustainability and charitable giving? I'm happy to provide additional details, statistics, or connect you with charities already participating in the program.</p>
 
-<p>Best,<br>Neil Fox<br>Founder, Donate by Mail<br><a href="https://www.donatebymail.org">donatebymail.org</a></p>
+<p>Best regards,<br>
+Neil Fox<br>
+Founder, Donate by Mail<br>
+contact@donatebymail.org<br>
+<a href="https://www.donatebymail.org">donatebymail.org</a></p>
 """
 
 def get_email_count():
     """Get the current count of emails sent today."""
-    sent_emails = load_sent_emails()
-    today = datetime.now().strftime("%Y-%m-%d")
-    return sum(1 for email in sent_emails if email["date"] == today)
+    try:
+        sent_emails = load_sent_emails()
+        today = datetime.now().strftime("%Y-%m-%d")
+        return sum(1 for email in sent_emails if email["date"] == today)
+    except Exception as e:
+        logging.error(f"Error getting email count: {e}")
+        return MAX_EMAILS_PER_DAY  # Return max to prevent sending in case of error
 
 def load_sent_emails():
     """Load the list of sent emails from the file."""
-    if os.path.exists(SENT_EMAILS_FILE):
-        with open(SENT_EMAILS_FILE, 'r') as file:
-            return json.load(file)
-    return []
+    try:
+        if os.path.exists(SENT_EMAILS_FILE):
+            with open(SENT_EMAILS_FILE, 'r') as file:
+                return json.load(file)
+        return []
+    except Exception as e:
+        logging.error(f"Error loading sent emails: {e}")
+        return []
 
 def save_sent_email(email):
     """Save a sent email to the log file."""
-    sent_emails = load_sent_emails()
-    sent_emails.append({"email": email, "date": datetime.now().strftime("%Y-%m-%d")})
-    with open(SENT_EMAILS_FILE, 'w') as file:
-        json.dump(sent_emails, file)
+    try:
+        sent_emails = load_sent_emails()
+        sent_emails.append({"email": email, "date": datetime.now().strftime("%Y-%m-%d")})
+        with open(SENT_EMAILS_FILE, 'w') as file:
+            json.dump(sent_emails, file)
+    except Exception as e:
+        logging.error(f"Error saving sent email: {e}")
 
 def email_already_sent(recipient_email):
     """Check if the email has already been sent to the given address."""
-    sent_emails = load_sent_emails()
-    return any(entry['email'] == recipient_email for entry in sent_emails)
+    try:
+        sent_emails = load_sent_emails()
+        return any(entry['email'] == recipient_email for entry in sent_emails)
+    except Exception as e:
+        logging.error(f"Error checking if email was sent: {e}")
+        return True  # Return True to prevent sending in case of error
 
 def send_individual_email(recipient_email, subject, content):
     """Send an email using Brevo's Transactional Email API."""
@@ -87,7 +100,7 @@ def send_individual_email(recipient_email, subject, content):
 
     send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
         to=[{"email": recipient_email}],
-        sender={"name": "Neil Fox", "email": "contact@donatebymail.org"},  # Update sender email if needed
+        sender={"name": "Neil Fox", "email": "contact@donatebymail.org"},
         subject=subject,
         html_content=content
     )
@@ -103,15 +116,25 @@ def send_individual_email(recipient_email, subject, content):
 
 def get_next_email():
     """Get the next random email from the CSV file."""
-    with open('randomized_email_list.csv', 'r') as f:
-        reader = list(csv.reader(f))
-    random.shuffle(reader)  # Shuffle to pick a random email
-    next_email = reader[0][0]
-    # Rewrite the file without the email that was just picked
-    with open('randomized_email_list.csv', 'w', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerows(reader[1:])
-    return next_email
+    try:
+        with open('randomized_email_list.csv', 'r') as f:
+            reader = list(csv.reader(f))
+            if not reader:
+                logging.error("Email list is empty")
+                return None
+            random.shuffle(reader)
+            next_email = reader[0][0]
+        
+        with open('randomized_email_list.csv', 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerows(reader[1:])
+        return next_email
+    except FileNotFoundError:
+        logging.error("randomized_email_list.csv not found")
+        return None
+    except Exception as e:
+        logging.error(f"Error getting next email: {e}")
+        return None
 
 def generate_and_send_email():
     """Generate and send an email if within the daily limit."""
@@ -122,14 +145,16 @@ def generate_and_send_email():
         return
 
     recipient_email = get_next_email()
+    if not recipient_email:
+        logging.error("No valid email address obtained")
+        return
 
-    # Check if the email has already been sent
     if email_already_sent(recipient_email):
         logging.info(f"Email has already been sent to {recipient_email}. Skipping.")
         return
 
     # Updated subject line
-    subject = "Turn Unused Phones into $17K for Your Charity (Zero Work Required)"
+    subject = "Story Tip: Local Charities Turn Old Phones into $34K Revenue Streams"
     email_content = EMAIL_TEMPLATE.strip()  # Ensure the email template is clean and formatted
 
     # Send the email
