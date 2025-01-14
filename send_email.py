@@ -12,9 +12,15 @@ from datetime import datetime
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 
-# Hardcoded Brevo API key for testing purposes
-brevo_api_key = "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"  # Replace this with your actual Brevo API key
-openrouter_api_key = "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"  # Replace this with your actual OpenRouter API key
+# Load API keys from environment variables
+brevo_api_key = os.getenv("BREVO_API_KEY")
+openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+
+# Ensure API keys are loaded
+if not brevo_api_key:
+    raise ValueError("Brevo API key is not set. Please check the environment variable BREVO_API_KEY.")
+if not openrouter_api_key:
+    raise ValueError("OpenRouter API key is not set. Please check the environment variable OPENROUTER_API_KEY.")
 
 # File to track sent emails
 SENT_EMAILS_FILE = 'sent_emails.json'
@@ -22,13 +28,33 @@ MAX_EMAILS_PER_DAY = 250
 
 # Configuration for Brevo API key
 brevo_configuration = sib_api_v3_sdk.Configuration()
-brevo_configuration.api_key['api-key'] = brevo_api_key  # Ensure the key is set properly
+brevo_configuration.api_key['api-key'] = brevo_api_key
 
 # Create an instance of the Brevo Transactional Emails API client
 brevo_api_instance = sib_api_v3_sdk.TransactionalEmailsApi(sib_api_v3_sdk.ApiClient(brevo_configuration))
 
-# OpenRouter API Configuration
-openrouter_api_url = "https://openrouter.ai/api/v1/chat/completions"
+# Campaign email template with HTML formatting
+EMAIL_TEMPLATE = """
+<p>Hi there,</p>
+
+<p>Have you noticed how many people got new phones over the holidays? 📱</p>
+
+<p>There's a huge opportunity right now to turn those old devices into funding for your charity, and we handle everything.</p>
+
+<p>Here's the deal:</p>
+<ul>
+    <li>Your supporters mail in their old phones</li>
+    <li>We handle all logistics and processing</li>
+    <li>You get 50% of the proceeds (average $17K per campaign)</li>
+    <li>Zero work required from your team</li>
+</ul>
+
+<p>We're only launching this with 10 select charities this quarter, as each campaign gets our full attention.</p>
+
+<p>Want to grab a quick call to learn more? Just hit reply with "YES" and I'll send over a booking link.</p>
+
+<p>Best,<br>Neil Fox<br>Founder, Donate by Mail<br><a href="https://www.donatebymail.org">donatebymail.org</a></p>
+"""
 
 def get_email_count():
     """Get the current count of emails sent today."""
@@ -41,9 +67,7 @@ def load_sent_emails():
     if os.path.exists(SENT_EMAILS_FILE):
         with open(SENT_EMAILS_FILE, 'r') as file:
             return json.load(file)
-    else:
-        # If file doesn't exist, return an empty list
-        return []
+    return []
 
 def save_sent_email(email):
     """Save a sent email to the log file."""
@@ -52,81 +76,18 @@ def save_sent_email(email):
     with open(SENT_EMAILS_FILE, 'w') as file:
         json.dump(sent_emails, file)
 
-def email_already_sent(journalist_email):
+def email_already_sent(recipient_email):
     """Check if the email has already been sent to the given address."""
     sent_emails = load_sent_emails()
-    return any(entry['email'] == journalist_email for entry in sent_emails)
+    return any(entry['email'] == recipient_email for entry in sent_emails)
 
-def extract_journalist_info(email):
-    """Extract journalist's name and publication from email address."""
-    username = email.split('@')[0]
-    domain = email.split('@')[1].split('.')[0]
-
-    # Assume first initial and last name format for the email username
-    name_parts = username.split('.')
-    if len(name_parts) == 2:
-        journalist_name = f"{name_parts[0].capitalize()} {name_parts[1].capitalize()}"
-    else:
-        journalist_name = username.capitalize()
-
-    # Use the domain as the focus, assuming it's the publication
-    return journalist_name, domain.capitalize()
-
-def generate_custom_email(journalist_email):
-    """Generate a custom email using OpenRouter."""
-    journalist_name, journalist_focus = extract_journalist_info(journalist_email)
-    
-    logging.info(f"Generating a custom email for {journalist_name} at {journalist_focus}")
-
-    prompt = f"""
-Write a personalized email as a representative from Donate by Mail named Neil Wacaster, introducing the nonprofit to {journalist_name}. The email should highlight Donate by Mail's mission to collect unused tech items to empower veterans or recycle them responsibly. Make the email captivating by emphasizing the impact on veterans' education and employment opportunities, and the simplicity of the donation process.
-Suggest a unique angle for {journalist_name} to explore, such as the tech donation process, the environmental impact of recycling devices, or the personal stories of veterans helped by the program. Invite the journalist to reach out for an interview or feature, and include a clear call to action for collaboration.
-If they would like to contact me they can do so via a response to my email. Do not use placeholder text like [insert contact], use only the information given here.
-Tailor the message to {journalist_focus}. Make sure to include the web address for the 501(c)(3), which is https://www.donatebymail.org
-    """
-
-    headers = {
-        "Authorization": f"Bearer {openrouter_api_key}",
-        "Content-Type": "application/json",
-    }
-
-    data = {
-        "model": "nousresearch/hermes-3-llama-3.1-405b:free",
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    }
-
-    try:
-        response = requests.post(openrouter_api_url, headers=headers, data=json.dumps(data))
-        response.raise_for_status()
-
-        # Log the raw response for debugging
-        logging.info(f"OpenRouter response: {response.json()}")
-
-        email_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', '')
-
-        if email_text.strip():
-            logging.info(f"Custom email generated: {email_text}")
-            formatted_email = email_text.replace("\n", "</p><p>")  # Format email for HTML
-            return f"<p>{formatted_email}</p>"
-        else:
-            logging.warning("OpenRouter returned an empty response.")
-            return None
-    except requests.RequestException as e:
-        logging.error(f"Error generating custom email: {e}")
-        return None
-
-def send_individual_email(journalist_email, subject, content):
+def send_individual_email(recipient_email, subject, content):
     """Send an email using Brevo's Transactional Email API."""
-    logging.info(f"Attempting to send an email to {journalist_email}")
+    logging.info(f"Attempting to send an email to {recipient_email}")
 
     send_smtp_email = sib_api_v3_sdk.SendSmtpEmail(
-        to=[{"email": journalist_email}],
-        sender={"name": "Neil W.", "email": "contact@neilwacaster.com"},  # Use the correct email address
+        to=[{"email": recipient_email}],
+        sender={"name": "Neil Fox", "email": "contact@donatebymail.org"},  # Update sender email if needed
         subject=subject,
         html_content=content
     )
@@ -136,7 +97,7 @@ def send_individual_email(journalist_email, subject, content):
         logging.info("Email sent successfully!")
         pprint(api_response)
         # Log the sent email to the JSON file
-        save_sent_email(journalist_email)
+        save_sent_email(recipient_email)
     except ApiException as e:
         logging.error(f"Exception when calling TransactionalEmailsApi->send_transac_email: {e}")
 
@@ -153,30 +114,26 @@ def get_next_email():
     return next_email
 
 def generate_and_send_email():
-    """Generate and send custom email if within daily limit."""
+    """Generate and send an email if within the daily limit."""
     email_count = get_email_count()
 
     if email_count >= MAX_EMAILS_PER_DAY:
         logging.info(f"Email limit reached for the day. No more emails will be sent.")
         return
 
-    journalist_email = get_next_email()
+    recipient_email = get_next_email()
 
-    # Check if email has already been sent
-    if email_already_sent(journalist_email):
-        logging.info(f"Email has already been sent to {journalist_email}. Skipping.")
+    # Check if the email has already been sent
+    if email_already_sent(recipient_email):
+        logging.info(f"Email has already been sent to {recipient_email}. Skipping.")
         return
 
-    subject = "Story Pitch: How Old Tech is Changing Veterans’ Lives"
+    # Updated subject line
+    subject = "Turn Unused Phones into $17K for Your Charity (Zero Work Required)"
+    email_content = EMAIL_TEMPLATE.strip()  # Ensure the email template is clean and formatted
 
-    # Generate custom email content
-    email_content = generate_custom_email(journalist_email)
-
-    if email_content:
-        # Send the email if valid content is generated
-        send_individual_email(journalist_email, subject, email_content)
-    else:
-        logging.warning(f"No email was sent to {journalist_email} due to invalid or empty content.")
+    # Send the email
+    send_individual_email(recipient_email, subject, email_content)
 
 # Example usage
 if __name__ == "__main__":
