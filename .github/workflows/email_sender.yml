@@ -42,4 +42,4 @@ jobs:
           GRAPH_CLIENT_SECRET: ${{ secrets.GRAPH_CLIENT_SECRET }}
           FROM_EMAIL_ADDRESS: "contact@donatebymail.org"  # Optional; move to secrets if necessary
           CSV_FILE_PATH: "unique_emails.csv"  # Adjust if needed
-        run: python send_graph_emails.py
+        run: python send_email.py
