@@ -41,5 +41,5 @@ jobs:
           GRAPH_TENANT_ID: ${{ secrets.GRAPH_TENANT_ID }}
           GRAPH_CLIENT_SECRET: ${{ secrets.GRAPH_CLIENT_SECRET }}
           FROM_EMAIL_ADDRESS: "contact@donatebymail.org"  # Optional; move to secrets if necessary
-          CSV_FILE_PATH: "unique_emails.csv"  # Adjust if needed
+          CSV_FILE_PATH: "randomized_email_list.csv"  # Adjust if needed
         run: python send_email.py
